@@ -1404,6 +1404,36 @@ function renderObjectPortRow ($port, $is_highlighted)
 	echo "</tr>";
 }
 
+//render rebooter forms
+function renderObjectReboot ($port, $is_highlighted)
+{
+	// highlight port name with yellow if its name is not canonical
+	$canon_pn = shortenPortName ($port['name'], $port['object_id']);
+	$name_class = $canon_pn == $port['name'] ? '' : 'trwarning';
+
+	if ($port['remote_object_id'])
+	{
+		echo '<tr';
+		$dname = formatObjectDisplayedName ($port['remote_object_name'], $port['remote_object_tid']);
+		echo "<td class=tdleft>" .
+			formatPortLink ($port['remote_object_id'], $dname, $port['remote_id'], NULL) .
+			"</td>";
+		echo "<td class=tdleft>" . formatLoggedSpan ($port['last_log'], $port['remote_name'], 'underline') . "</td>";
+        if ($port['oif_name'] == 'AC-in'){
+            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20ON'>ON</a>" . "</td>";
+            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20OFF'>OFF</a>" . "</td>";
+            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "'>STATUS</a>" . "</td>";
+        }
+		$editable = permitted ('object', 'ports', 'editPort')
+			? 'editable'
+			: '';
+		echo "<td class=tdleft><span class='rsvtext $editable id-${port['id']} op-upd-reservation-cable'>${port['cableid']}</span></td>";
+	echo "</tr>";
+	}
+	else
+		echo implode ('', formatPortReservation ($port)) . '<td></td>';
+}
+
 function renderObject ($object_id)
 {
 	global $nextorder, $virtual_obj_types;
@@ -1634,6 +1664,256 @@ function renderObject ($object_id)
 	}
 	echo "<tr></table>\n";
 }
+
+function renderRebootServerForm($object_id)
+{
+	global $nextorder, $virtual_obj_types;
+	$info = spotEntity ('object', $object_id);
+	amplifyCell ($info);
+	// Main layout starts.
+	echo "<table border=0 class=objectview cellspacing=0 cellpadding=0>";
+	echo "<tr><td colspan=2 align=center><h1>${info['dname']}</h1></td></tr>\n";
+	// A mandatory left column with varying number of portlets.
+	echo "<tr><td class=pcleft>";
+
+	// display summary portlet
+	$summary = array();
+	if ($info['name'] != '')
+		$summary['Common name'] = $info['name'];
+	elseif (considerConfiguredConstraint ($info, 'NAMEWARN_LISTSRC'))
+		$summary[] = array ('<tr><td colspan=2 class=msg_error>Common name is missing.</td></tr>');
+	$summary['Object type'] = '<a href="' . makeHref (array (
+		'page' => 'depot',
+		'tab' => 'default',
+		'cfe' => '{$typeid_' . $info['objtype_id'] . '}'
+	)) . '">' .  decodeObjectType ($info['objtype_id']) . '</a>';
+	if ($info['label'] != '')
+		$summary['Visible label'] = $info['label'];
+	if ($info['asset_no'] != '')
+		$summary['Asset tag'] = $info['asset_no'];
+	elseif (considerConfiguredConstraint ($info, 'ASSETWARN_LISTSRC'))
+		$summary[] = array ('<tr><td colspan=2 class=msg_error>Asset tag is missing.</td></tr>');
+	$parents = getParents ($info, 'object');
+	// lookup the human-readable object type, sort by it
+	foreach ($parents as $parent_id => $parent)
+		$parents[$parent_id]['object_type'] = decodeObjectType ($parent['objtype_id']);
+	$grouped_parents = groupBy ($parents, 'object_type');
+	ksort ($grouped_parents);
+	foreach ($grouped_parents as $parents_group)
+	{
+		uasort ($parents_group, 'compare_name');
+		$label = $parents_group[key ($parents_group)]['object_type'] . (count($parents_group) > 1 ? ' containers' : ' container');
+		$fmt_parents = array();
+		foreach ($parents_group as $parent)
+			$fmt_parents[] = mkCellA ($parent);
+		$summary[$label] = implode ('<br>', $fmt_parents);
+	}
+	$children = getChildren ($info, 'object');
+	foreach (groupBy ($children, 'objtype_id') as $objtype_id => $children_group)
+	{
+		uasort ($children_group, 'compare_name');
+		$fmt_children = array();
+		foreach ($children_group as $child)
+			$fmt_children[] = mkCellA ($child);
+		$summary["Contains " . mb_strtolower(decodeObjectType ($objtype_id))] = implode ('<br>', $fmt_children);
+	}
+	if ($info['has_problems'] == 'yes')
+		$summary[] = array ('<tr><td colspan=2 class=msg_error>Has problems</td></tr>');
+	foreach (getAttrValuesSorted ($object_id) as $record)
+		if
+		(
+			$record['value'] != '' &&
+			permitted (NULL, NULL, NULL, array (array ('tag' => '$attr_' . $record['id'])))
+		)
+			$summary['{sticker}' . $record['name']] = formatAttributeValue ($record, $info['objtype_id']);
+	$summary[] = array (getOutputOf ('printTagTRs',
+		$info,
+		makeHref
+		(
+			array
+			(
+				'page'=>'depot',
+				'tab'=>'default',
+				'andor' => 'and',
+				'cfe' => '{$typeid_' . $info['objtype_id'] . '}',
+			)
+		)."&"
+	));
+	#renderEntitySummary ($info, 'summary', $summary);
+
+	// if ($info['comment'] != '')
+	// {
+	// 	startPortlet ('Comment');
+	// 	echo '<div class=commentblock>' . string_insert_hrefs ($info['comment']) . '</div>';
+	// 	finishPortlet ();
+	// }
+
+	// renderLogRecordsPortlet ($object_id);
+
+	switchportInfoJS ($object_id); // load JS code to make portnames interactive
+	// renderFilesPortlet ('object', $object_id);
+
+	// if (count ($info['ports']))
+	// {
+	// 	startPortlet ('ports and links');
+	// 	$hl_port_id = 0;
+	// 	if (isset ($_REQUEST['hl_port_id']))
+	// 	{
+	// 		genericAssertion ('hl_port_id', 'natural');
+	// 		$hl_port_id = $_REQUEST['hl_port_id'];
+	// 		addAutoScrollScript ("port-$hl_port_id");
+	// 	}
+	// 	echo "<table cellspacing=0 cellpadding='5' align='center' class='widetable'>";
+	// 	callHook ('renderObjectPortHeaderRow');
+	// 	foreach ($info['ports'] as $port)
+	// 		callHook ('renderObjectPortRow', $port, ($hl_port_id == $port['id']));
+	// 	if (permitted (NULL, 'ports', 'set_reserve_comment'))
+	// 		addJSInternal ('js/inplace-edit.js');
+	// 	echo "</table><br>";
+	// 	finishPortlet();
+	// }
+
+	// render Reboot buttons. 
+	if (count ($info['ports']))
+	{
+		startPortlet ('Reboot');
+		$hl_port_id = 0;
+		if (isset ($_REQUEST['hl_port_id']))
+		{
+			genericAssertion ('hl_port_id', 'natural');
+			$hl_port_id = $_REQUEST['hl_port_id'];
+			addAutoScrollScript ("port-$hl_port_id");
+		}
+		echo "<table cellspacing=0 cellpadding='5' align='center' class='widetable'>";
+		foreach ($info['ports'] as $port)
+			callHook ('renderObjectReboot', $port, ($hl_port_id == $port['id']));
+		echo "</table><br>";
+		finishPortlet();
+	}
+	// if (count ($info['ipv4']) + count ($info['ipv6']))
+	// {
+	// 	startPortlet ('IP addresses');
+	// 	echo "<table cellspacing=0 cellpadding='5' align='center' class='widetable'>\n";
+	// 	if ('yes' == $ext_ipv4_view = getConfigVar ('EXT_IPV4_VIEW'))
+	// 		echo "<tr class=tdleft><th>OS interface</th><th>IP address</th><th>network</th><th>routed by</th><th>peers</th></tr>\n";
+	// 	else
+	// 		echo "<tr class=tdleft><th>OS interface</th><th>IP address</th><th>peers</th></tr>\n";
+
+	// 	// group IP allocations by interface name instead of address family
+	// 	$allocs_by_iface = array();
+	// 	foreach (array ('ipv4', 'ipv6') as $ip_v)
+	// 		foreach ($info[$ip_v] as $ip_bin => $alloc)
+	// 			$allocs_by_iface[$alloc['osif']][$ip_bin] = $alloc;
+
+	// 	// sort allocs array by portnames
+	// 	foreach (sortPortList ($allocs_by_iface) as $iface_name => $alloclist)
+	// 	{
+	// 		$is_first_row = TRUE;
+	// 		foreach ($alloclist as $alloc)
+	// 		{
+	// 			$rendered_alloc = callHook ('getRenderedAlloc', $object_id, $alloc);
+	// 			echo "<tr class='${rendered_alloc['tr_class']}' valign=top>";
+
+	// 			// display iface name, same values are grouped into single cell
+	// 			if ($is_first_row)
+	// 			{
+	// 				$rowspan = count ($alloclist) > 1 ? 'rowspan="' . count ($alloclist) . '"' : '';
+	// 				echo "<td class=tdleft $rowspan>" . $iface_name . $rendered_alloc['td_name_suffix'] . "</td>";
+	// 				$is_first_row = FALSE;
+	// 			}
+	// 			echo $rendered_alloc['td_ip'];
+	// 			if ($ext_ipv4_view == 'yes')
+	// 			{
+	// 				echo $rendered_alloc['td_network'];
+	// 				echo $rendered_alloc['td_routed_by'];
+	// 			}
+	// 			echo $rendered_alloc['td_peers'];
+
+	// 			echo "</tr>\n";
+	// 		}
+	// 	}
+	// 	echo "</table><br>\n";
+	// 	finishPortlet();
+	// }
+
+	// $forwards = $info['nat4'];
+	// if (count ($forwards['in']) || count ($forwards['out']))
+	// {
+	// 	startPortlet('NATv4');
+
+	// 	if (count($forwards['out']))
+	// 	{
+
+	// 		echo "<h3>locally performed NAT</h3>";
+
+	// 		echo "<table class='widetable' cellpadding=5 cellspacing=0 border=0 align='center'>\n";
+	// 		echo "<tr><th>Proto</th><th>Match endpoint</th><th>Translate to</th><th>Target object</th><th>Rule comment</th></tr>\n";
+
+	// 		foreach ($forwards['out'] as $pf)
+	// 		{
+	// 			$class = 'trerror';
+	// 			$osif = '';
+	// 			$localip_bin = ip_parse ($pf['localip']);
+	// 			if (array_key_exists ($localip_bin, $info['ipv4']))
+	// 			{
+	// 				$class = $info['ipv4'][$localip_bin]['addrinfo']['class'];
+	// 				$osif = $info['ipv4'][$localip_bin]['osif'] . ': ';
+	// 			}
+	// 			echo "<tr class='$class'>";
+	// 			echo "<td class=tdleft>${pf['proto']}</td><td class=tdleft>${osif}" . getRenderedIPPortPair ($pf['localip'], $pf['localport']) . "</td>";
+	// 			echo "<td class=tdleft>" . getRenderedIPPortPair ($pf['remoteip'], $pf['remoteport']) . "</td>";
+	// 			$address = getIPAddress (ip4_parse ($pf['remoteip']));
+	// 			echo "<td class='description tdleft'>";
+	// 			if (count ($address['allocs']))
+	// 				foreach($address['allocs'] as $bond)
+	// 					echo mkA ("${bond['object_name']}(${bond['name']})", 'object', $bond['object_id']) . ' ';
+	// 			elseif ($pf['remote_addr_name'] != '')
+	// 				echo '(' . $pf['remote_addr_name'] . ')';
+	// 			echo "</td><td class='description tdleft'>${pf['description']}</td></tr>";
+	// 		}
+	// 		echo "</table><br><br>";
+	// 	}
+	// 	if (count($forwards['in']))
+	// 	{
+	// 		echo "<h3>arriving NAT connections</h3>";
+	// 		echo "<table class='widetable' cellpadding=5 cellspacing=0 border=0 align='center'>\n";
+	// 		echo "<tr><th>Matched endpoint</th><th>Source object</th><th>Translated to</th><th>Rule comment</th></tr>\n";
+	// 		foreach ($forwards['in'] as $pf)
+	// 		{
+	// 			echo "<tr>";
+	// 			echo "<td class=tdleft>${pf['proto']}/" . getRenderedIPPortPair ($pf['localip'], $pf['localport']) . "</td>";
+	// 			echo '<td class="description tdleft">' . mkA ($pf['object_name'], 'object', $pf['object_id']);
+	// 			echo "</td><td class=tdleft>" . getRenderedIPPortPair ($pf['remoteip'], $pf['remoteport']) . "</td>";
+	// 			echo "<td class='description tdleft'>${pf['description']}</td></tr>";
+	// 		}
+	// 		echo "</table><br><br>";
+	// 	}
+	// 	finishPortlet();
+	// }
+
+	// renderSLBTriplets2 ($info);
+	// renderSLBTriplets ($info);
+	// echo "</td>\n";
+
+	// A conditional right column with the rackspace portlet only.
+	// if
+	// (
+	// 	! in_array ($info['objtype_id'], $virtual_obj_types) &&
+	// 	count ($rack_ids = getResidentRackIDs ($object_id))
+	// )
+	// {
+	// 	echo '<td class=pcright>';
+	// 	startPortlet ('rackspace allocation');
+	// 	foreach ($rack_ids as $rack_id)
+	// 		renderRack ($rack_id, $object_id);
+	// 	echo '<br>';
+	// 	finishPortlet();
+	// 	echo '</td>';
+	// }
+	// echo "<tr></table>\n";
+}
+
+
 
 function renderRackMultiSelect ($sname, $racks, $selected)
 {
