@@ -1,0 +1,30 @@
+version: "3"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: NGINX.Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/nginx.conf
+      - ./app/wwwroot:/app
+  php:
+    build:
+      context: .
+      dockerfile: PHP.Dockerfile
+    volumes:
+      - ./app/wwwroot:/app
+  mysql:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: "secret"
+      MYSQL_USER: "vitovt"
+      MYSQL_PASSWORD: "secret"
+      MYSQL_DATABASE: "racktables_dev"
+    volumes:
+      - racktables_dev:/var/lib/mysql
+    ports:
+      - "3306:3306"
+volumes:
+  racktables_dev: {}
