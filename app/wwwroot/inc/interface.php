@@ -1389,6 +1389,11 @@ function renderObjectPortRow ($port, $is_highlighted)
 			formatPortLink ($port['remote_object_id'], $dname, $port['remote_id'], NULL) .
 			"</td>";
 		echo "<td class=tdleft>" . formatLoggedSpan ($port['last_log'], $port['remote_name'], 'underline') . "</td>";
+        if ($port['oif_name'] == 'AC-in'){
+            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20ON'>ON</a>" . "</td>";
+            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20OFF'>OFF</a>" . "</td>";
+            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "'>STATUS</a>" . "</td>";
+        }
 		$editable = permitted ('object', 'ports', 'editPort')
 			? 'editable'
 			: '';
