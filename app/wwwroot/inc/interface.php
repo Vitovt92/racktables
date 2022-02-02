@@ -1404,34 +1404,88 @@ function renderObjectPortRow ($port, $is_highlighted)
 	echo "</tr>";
 }
 
+// Function to make curl requests to API
+function callAPI($method, $url, $data){
+	$curl = curl_init();
+	switch ($method){
+	   case "POST":
+		  curl_setopt($curl, CURLOPT_POST, 1);
+		  if ($data)
+			 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+		  break;
+	   case "PUT":
+		  curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+		  if ($data)
+			 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);			 					
+		  break;
+	   default:
+		  if ($data)
+			 $url = sprintf("%s?%s", $url, http_build_query($data));
+	}
+	// OPTIONS:
+	curl_setopt($curl, CURLOPT_URL, $url);
+	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+//		   'APIKEY: 111111111111111111111',
+	   'Content-Type: application/json',
+	));
+	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+	// EXECUTE:
+	$result = curl_exec($curl);
+	if(!$result)
+	{
+		return ["error" => "Connection Failure"];
+	}
+	curl_close($curl);
+	return $result;
+ }
+
 //render rebooter forms
 function renderObjectReboot ($port, $is_highlighted)
 {
-	// highlight port name with yellow if its name is not canonical
-	$canon_pn = shortenPortName ($port['name'], $port['object_id']);
-	$name_class = $canon_pn == $port['name'] ? '' : 'trwarning';
 
 	if ($port['remote_object_id'])
 	{
-		echo '<tr';
-		$dname = formatObjectDisplayedName ($port['remote_object_name'], $port['remote_object_tid']);
-		echo "<td class=tdleft>" .
-			formatPortLink ($port['remote_object_id'], $dname, $port['remote_id'], NULL) .
-			"</td>";
-		echo "<td class=tdleft>" . formatLoggedSpan ($port['last_log'], $port['remote_name'], 'underline') . "</td>";
+
+		echo '<tr>';
+	        if ($port['oif_name'] == 'AC-in'){
+				echo "
+					<form method='post' action='?module=redirect&page=object&tab=rebooter&op=reboot_on'>
+						<button type='submit'> ON </button>
+					</form>";
+				echo "
+					<form method='post' action='?module=redirect&page=object&tab=rebooter&op=reboot_off'>
+						<button tupe='submit'> OFF </button>
+					</form>";	
+
+				$port_power_arg = 'Power' . $port['remote_name'];
+
+				$get_data = callAPI('GET', 'http://'.$port['remote_object_name'].'/cm', ['cmnd' => $port_power_arg]);
+
+				if(!isset($get_data['error']))
+				{
+					$response = json_decode($get_data, true);
+
+					if (isset($response['POWER4']))
+					{
+						echo "
+							status: {$response['POWER4']}
+						";
+					}
+				} else {
+					echo 'Error connect to rebooter IP: ' . $port['remote_object_name'] . ' - ' . $get_data['error'];
+				};
+	        }
+		echo "</tr>";
+
+		echo '<tr>';
         if ($port['oif_name'] == 'AC-in'){
             echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20ON'>ON</a>" . "</td>";
             echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20OFF'>OFF</a>" . "</td>";
             echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "'>STATUS</a>" . "</td>";
         }
-		$editable = permitted ('object', 'ports', 'editPort')
-			? 'editable'
-			: '';
-		echo "<td class=tdleft><span class='rsvtext $editable id-${port['id']} op-upd-reservation-cable'>${port['cableid']}</span></td>";
 	echo "</tr>";
 	}
-	else
-		echo implode ('', formatPortReservation ($port)) . '<td></td>';
 }
 
 function renderObject ($object_id)
