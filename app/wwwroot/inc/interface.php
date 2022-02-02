@@ -1458,7 +1458,8 @@ function renderObjectReboot ($port, $is_highlighted)
 						<button tupe='submit'> OFF </button>
 					</form>";	
 
-				$port_power_arg = 'Power' . $port['remote_name'];
+				$port_power_arg = 'Power' . $port['remote_name'];    // For instance 'Power8', 
+				$port_power_arg_upper = strtoupper($port_power_arg);    // in some cases need port power arg but in uppercase
 
 				$get_data = callAPI('GET', 'http://'.$port['remote_object_name'].'/cm', ['cmnd' => $port_power_arg]);
 
@@ -1466,10 +1467,18 @@ function renderObjectReboot ($port, $is_highlighted)
 				{
 					$response = json_decode($get_data, true);
 
-					if (isset($response['POWER4']))
+					if (isset($response[$port_power_arg_upper]))
 					{
+						$port_status = $response[$port_power_arg_upper]; 
+						
+						if ($port_status === 'ON')  // Change color of port status depends on status 
+						{
+							$text_color = 'green';
+						} else {
+							$text_color = 'red';
+						}
 						echo "
-							status: {$response['POWER4']}
+							status: <span style='color: {$text_color}'> {$port_status} </span>
 						";
 					}
 				} else {
@@ -1478,13 +1487,6 @@ function renderObjectReboot ($port, $is_highlighted)
 	        }
 		echo "</tr>";
 
-		echo '<tr>';
-        if ($port['oif_name'] == 'AC-in'){
-            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20ON'>ON</a>" . "</td>";
-            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "%20OFF'>OFF</a>" . "</td>";
-            echo "<td class=tdleft>" . "<a href='http://" . $port['remote_object_name'] . "/cm?cmnd=Power" . $port['remote_name'] . "'>STATUS</a>" . "</td>";
-        }
-	echo "</tr>";
 	}
 }
 
