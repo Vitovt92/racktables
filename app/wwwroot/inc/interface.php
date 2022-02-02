@@ -1475,7 +1475,7 @@ function renderObjectReboot ($port, $is_highlighted)
 						{
 							$text_color = 'green';
 						} else {
-							$text_color = 'red';
+							$text_color = 'blue';
 						}
 						echo "
 							status: <span style='color: {$text_color}'> {$port_status} </span>
