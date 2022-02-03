@@ -1441,61 +1441,76 @@ function renderObjectReboot ($port, $is_highlighted)
 	if ($port['remote_object_id'])
 	{
 
-		echo '<tr>';
-	        if ($port['oif_name'] == 'AC-in'){
-				$alert_message_on='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде включено (ON)"';
-				$alert_message_off='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде виключено (OFF)"';
-
-				echo "<td>
-					<form 
-						method='post' 
-						action='?module=redirect&page=object&tab=rebooter&op=reboot_on&object_id={$port['object_id']}' 
-						onsubmit='return confirm(".$alert_message_on.");'
-						>
-						<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
-						<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
-						<input style='cursor:pointer' type='submit' value='ON'>
-					</form></td>";
-				echo "<td>
-					<form 
-						method='post' 
-						action='?module=redirect&page=object&tab=rebooter&op=reboot_off&object_id={$port['object_id']}'
-						onsubmit='return confirm(".$alert_message_off.");'
-						>
-						<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
-						<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
-						<input style='cursor:pointer' type='submit' value='OFF'>
-					</form></td>";	
-
-				$port_power_arg = 'Power' . $port['remote_name'];    // For instance 'Power8', 
-				$port_power_arg_upper = strtoupper($port_power_arg);    // in some cases need port power arg but in uppercase
-
-				$get_data = callAPI('GET', 'http://'.$port['remote_object_name'].'/cm', ['cmnd' => $port_power_arg]);
-
-				if(!isset($get_data['error']))
+		if ($port['oif_name'] == 'AC-in'){
+			$alert_message_on='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде включено (ON)"';
+			$alert_message_off='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде виключено (OFF)"';
+			
+			
+			$port_power_arg = 'Power' . $port['remote_name'];    // For instance 'Power8', 
+			$port_power_arg_upper = strtoupper($port_power_arg);    // in some cases need port power arg but in uppercase
+			
+			$get_data = callAPI('GET', 'http://'.$port['remote_object_name'].'/cm', ['cmnd' => $port_power_arg]);
+			
+			if(!isset($get_data['error']))
+			{
+				$response = json_decode($get_data, true);
+				
+				if (isset($response[$port_power_arg_upper]))
 				{
-					$response = json_decode($get_data, true);
-
-					if (isset($response[$port_power_arg_upper]))
+					$port_status = $response[$port_power_arg_upper]; 
+					
+					if ($port_status === 'ON')  // Change color of port status depends on status 
 					{
-						$port_status = $response[$port_power_arg_upper]; 
-						
-						if ($port_status === 'ON')  // Change color of port status depends on status 
-						{
-							$text_color = 'green';
-						} else {
-							$text_color = 'blue';
-						}
-						echo "<td>
-							status: <span style='color: {$text_color}'> {$port_status} </span>
-							</td>
-						";
+						$text_color = 'green';
+					} else {
+						$text_color = 'red';
 					}
-				} else {
-					echo 'Error connect to rebooter IP: ' . $port['remote_object_name'] . ' - ' . $get_data['error'];
-				};
+					echo '<tr>';
+					echo '<td>';
+					echo 'status: ';
+					echo '</td>';
+					echo "
+					<td>
+					<span style='font-weight:bold; font-size: 20px; color: {$text_color}'> {$port_status} </span>
+					</td>
+					";
+					echo "</tr>";
+				}
+			} else {
+				echo 'Error connect to rebooter IP: ' . $port['remote_object_name'] . ' - ' . $get_data['error'];
+			};
+			
+			echo "<tr>";
+			echo "<td>";
+			
+			echo "
+				<form 
+					method='post' 
+					action='?module=redirect&page=object&tab=rebooter&op=reboot_on&object_id={$port['object_id']}' 
+					onsubmit='return confirm(".$alert_message_on.");'
+					>
+					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
+					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
+					<input style='cursor:pointer' type='submit' value='ON'>
+				</form>";
+
+			echo "</td>";
+			echo "<td>";
+
+			echo "
+				<form 
+					method='post' 
+					action='?module=redirect&page=object&tab=rebooter&op=reboot_off&object_id={$port['object_id']}'
+					onsubmit='return confirm(".$alert_message_off.");'
+					>
+					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
+					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
+					<input style='cursor:pointer' type='submit' value='OFF'>
+				</form>";	
+			echo "</td>";
+			echo "</tr>";
+
 	        }
-		echo "</tr>";
 
 	}
 }
