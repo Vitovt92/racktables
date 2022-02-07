@@ -1471,7 +1471,7 @@ function renderObjectReboot ($port, $is_highlighted)
 					echo '</td>';
 					echo "
 					<td>
-					<span style='font-weight:bold; font-size: 20px; color: {$text_color}'> {$port_status} </span>
+					<span title='Статус порта ребутера' style='font-weight:bold; font-size: 20px; color: {$text_color}'> {$port_status} </span>
 					</td>
 					";
 					echo "</tr>";
@@ -1491,7 +1491,7 @@ function renderObjectReboot ($port, $is_highlighted)
 					>
 					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
-					<input style='cursor:pointer' type='submit' value='ON'>
+					<input title='Включити' style='cursor:pointer' type='submit' value='ON'>
 				</form>";
 
 			echo "</td>";
@@ -1505,7 +1505,7 @@ function renderObjectReboot ($port, $is_highlighted)
 					>
 					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
-					<input style='cursor:pointer' type='submit' value='OFF'>
+					<input title='Виключити' style='cursor:pointer' type='submit' value='OFF'>
 				</form>";	
 			echo "</td>";
 			echo "</tr>";
