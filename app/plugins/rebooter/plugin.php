@@ -265,7 +265,7 @@ function callAPI($method, $url, $data){
 			 $url = sprintf("%s?%s", $url, http_build_query($data));
 	}
 	// OPTIONS:
-	curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 60); // add because of long API answer 
+//	curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 50); // add because of long API answer 
 	curl_setopt($curl, CURLOPT_URL, $url);
 	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
 //		   'APIKEY: 111111111111111111111',
