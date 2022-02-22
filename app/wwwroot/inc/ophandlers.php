@@ -1326,63 +1326,63 @@ function updateObject ()
 }
 
 // Function to make curl requests to API
-function callAPI($method, $url, $data){
-	$curl = curl_init();
-	switch ($method){
-	   case "POST":
-		  curl_setopt($curl, CURLOPT_POST, 1);
-		  if ($data)
-			 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-		  break;
-	   case "PUT":
-		  curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
-		  if ($data)
-			 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);			 					
-		  break;
-	   default:
-		  if ($data)
-			 $url = sprintf("%s?%s", $url, http_build_query($data));
-	}
-	// OPTIONS:
-	curl_setopt($curl, CURLOPT_URL, $url);
-	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-//		   'APIKEY: 111111111111111111111',
-	   'Content-Type: application/json',
-	));
-	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-	// EXECUTE:
-	$result = curl_exec($curl);
-	if(!$result)
-	{
-		return ["error" => "Connection Failure"];
-	}
-	//echo $url;
-	//die();
-	curl_close($curl);
-	return $result;
- }
+// function callAPI($method, $url, $data){
+// 	$curl = curl_init();
+// 	switch ($method){
+// 	   case "POST":
+// 		  curl_setopt($curl, CURLOPT_POST, 1);
+// 		  if ($data)
+// 			 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+// 		  break;
+// 	   case "PUT":
+// 		  curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+// 		  if ($data)
+// 			 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);			 					
+// 		  break;
+// 	   default:
+// 		  if ($data)
+// 			 $url = sprintf("%s?%s", $url, http_build_query($data));
+// 	}
+// 	// OPTIONS:
+// 	curl_setopt($curl, CURLOPT_URL, $url);
+// 	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+// //		   'APIKEY: 111111111111111111111',
+// 	   'Content-Type: application/json',
+// 	));
+// 	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+// 	curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+// 	// EXECUTE:
+// 	$result = curl_exec($curl);
+// 	if(!$result)
+// 	{
+// 		return ["error" => "Connection Failure"];
+// 	}
+// 	//echo $url;
+// 	//die();
+// 	curl_close($curl);
+// 	return $result;
+//  }
 
-function rebooterSendON ()
-{
+// function rebooterSendON ()
+// {
 
-	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'])
-	{
-		$rebooter_ip = $_POST['rebooter_ip'];
-		$rebooter_arg = 'Power'.$_POST['rebooter_port'];				
-		$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' ON']);
-	}
-}
+// 	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'])
+// 	{
+// 		$rebooter_ip = $_POST['rebooter_ip'];
+// 		$rebooter_arg = 'Power'.$_POST['rebooter_port'];				
+// 		$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' ON']);
+// 	}
+// }
 
-function rebooterSendOFF ()
-{
-	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'])
-	{
-		$rebooter_ip = $_POST['rebooter_ip'];
-		$rebooter_arg = 'Power'.$_POST['rebooter_port'];				
-		$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' OFF']);
-	}
-}
+// function rebooterSendOFF ()
+// {
+// 	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'])
+// 	{
+// 		$rebooter_ip = $_POST['rebooter_ip'];
+// 		$rebooter_arg = 'Power'.$_POST['rebooter_port'];				
+// 		$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' OFF']);
+// 	}
+// }
 
 // Used when updating an object, location or rack
 function updateObjectAttributes ($object_id)
