@@ -155,7 +155,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 			$port_power_arg = 'Power' . $port['remote_name'];    // For instance 'Power8', 
 			$port_power_arg_upper = strtoupper($port_power_arg);    // in some cases need port power arg but in uppercase
 			
-			$get_data = callAPI('GET', 'http://'.$port['remote_object_name'].'/cm', ['cmnd' => 'Power' . $port['remote_name']]);
+			$get_data = callAPI('GET', 'http://'.$port['remote_object_asset_no'].'/cm', ['cmnd' => 'Power' . $port['remote_name']]);
 			
 			if(!isset($get_data['error']))
 			{
@@ -195,7 +195,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					action='?module=redirect&page=object&tab=rebooter&op=reboot_on&object_id={$port['object_id']}' 
 					onsubmit='return confirm(".$alert_message_on.");'
 					>
-					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
+					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
 					<input title='Включити' style='cursor:pointer' type='submit' value='ON'>
 				</form>";
@@ -209,7 +209,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					action='?module=redirect&page=object&tab=rebooter&op=reboot_off&object_id={$port['object_id']}'
 					onsubmit='return confirm(".$alert_message_off.");'
 					>
-					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_name']}' >
+					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
 					<input title='Виключити' style='cursor:pointer' type='submit' value='OFF'>
 				</form>";	
