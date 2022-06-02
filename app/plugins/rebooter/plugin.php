@@ -197,6 +197,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					>
 					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
+					<input name='rebooter_type' value='{$port['remote_object_label']}' >
 					<input title='Включити' style='cursor:pointer' type='submit' value='ON'>
 				</form>";
 
@@ -211,6 +212,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					>
 					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
+					<input name='rebooter_type' value='{$port['remote_object_label']}' >
 					<input title='Виключити' style='cursor:pointer' type='submit' value='OFF'>
 				</form>";	
 			echo "</td>";
@@ -224,12 +226,21 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 // when in rebooter tab click ON send http to rebooter API
 function rebooterSendON ()
 {
-
-	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'])
+	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'] && $_POST['rebooter_type'] )
 	{
 		$rebooter_ip = $_POST['rebooter_ip'];
-		$rebooter_arg = 'Power'.$_POST['rebooter_port'];				
-		$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' ON']);
+		$rebooter_port = $_POST['rebooter_port'];
+		$rebooter_arg = 'Power'.$rebooter_port;	
+
+		if ($_POST['rebooter_type'] === "megatazik")
+		{		
+			$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' ON']);
+		} elseif ($_POST['rebooter_type'] === "APC")
+		{
+			$output=null;
+			$retval=null;
+			exec("./../plugins/rebooter/APC/apc.py --host $rebooter_ip --on $rebooter_port", $output, $retval);
+		}
 	}
 }
 
@@ -237,11 +248,21 @@ function rebooterSendON ()
 // when in rebooter tab click OFF send http to rebooter API
 function rebooterSendOFF ()
 {
-	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'])
+	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'] && $_POST['rebooter_type'] )
 	{
 		$rebooter_ip = $_POST['rebooter_ip'];
-		$rebooter_arg = 'Power'.$_POST['rebooter_port'];				
-		$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' OFF']);
+		$rebooter_port = $_POST['rebooter_port'];
+		$rebooter_arg = 'Power'.$rebooter_port;	
+
+		if ($_POST['rebooter_type'] === "megatazik")
+		{
+			$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' OFF']);
+		}elseif ($_POST['rebooter_type'] === "APC")
+		{
+			$output=null;
+			$retval=null;
+			exec("./../plugins/rebooter/APC/apc.py --host $rebooter_ip --off $rebooter_port", $output, $retval);
+		}
 	}
 }
 
