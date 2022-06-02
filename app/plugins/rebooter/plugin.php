@@ -25,7 +25,7 @@ function plugin_rebooter_init ()
 	
 	registerOpHandler ('object', 'rebooter', 'reboot_on', 'rebooterSendON');
 	registerOpHandler ('object', 'rebooter', 'reboot_off', 'rebooterSendOFF');
-
+	registerOpHandler ('object', 'rebooter', 'reboot_reboot', 'rebooterSendREBOOT');
 }
 
 function plugin_rebooter_install ()
@@ -150,7 +150,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 		if ($port['oif_name'] == 'AC-in'){
 			$alert_message_on='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде включено (ON)"';
 			$alert_message_off='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде виключено (OFF)"';
-			
+			$alert_message_reboot='"Ви впевнені? Якщо ви підтвердите, то електричний порт '.$port['remote_name'].' на ребутері '.$port['remote_object_name'].' буде перезавантажено (REBOOT)"';
 			
 			$port_power_arg = 'Power' . $port['remote_name'];    // For instance 'Power8', 
 			$port_power_arg_upper = strtoupper($port_power_arg);    // in some cases need port power arg but in uppercase
@@ -176,10 +176,11 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					echo 'status: ';
 					echo '</td>';
 					echo "
-					<td>
+					<td colspan='2'>
 					<span title='Статус порта ребутера' style='font-weight:bold; font-size: 20px; color: {$text_color}'> {$port_status} </span>
 					</td>
 					";
+					
 					echo "</tr>";
 				}
 			} else {
@@ -197,7 +198,7 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					>
 					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
-					<input name='rebooter_type' value='{$port['remote_object_label']}' >
+					<input type='hidden' name='rebooter_type' value='{$port['remote_object_label']}' >
 					<input title='Включити' style='cursor:pointer' type='submit' value='ON'>
 				</form>";
 
@@ -212,10 +213,25 @@ function plugin_rebooter_renderObjectReboot ($port, $is_highlighted)
 					>
 					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
 					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
-					<input name='rebooter_type' value='{$port['remote_object_label']}' >
+					<input type='hidden' name='rebooter_type' value='{$port['remote_object_label']}' >
 					<input title='Виключити' style='cursor:pointer' type='submit' value='OFF'>
 				</form>";	
 			echo "</td>";
+			echo "<td>";
+
+			echo "
+				<form 
+					method='post' 
+					action='?module=redirect&page=object&tab=rebooter&op=reboot_reboot&object_id={$port['object_id']}'
+					onsubmit='return confirm(".$alert_message_reboot.");'
+					>
+					<input type='hidden' name='rebooter_ip' value='{$port['remote_object_asset_no']}' >
+					<input type='hidden' name='rebooter_port' value='{$port['remote_name']}' >
+					<input type='hidden' name='rebooter_type' value='{$port['remote_object_label']}' >
+					<input title='Перезавантажити' style='cursor:pointer' type='submit' value='REBOOT'>
+				</form>";	
+			echo "</td>";
+
 			echo "</tr>";
 
 	        }
@@ -266,6 +282,43 @@ function rebooterSendOFF ()
 	}
 }
 
+// when in rebooter tab click OFF send http to rebooter API
+function rebooterSendREBOOT ()
+{
+	if ($_POST['rebooter_ip'] && $_POST['rebooter_port'] && $_POST['rebooter_type'] )
+	{
+		$rebooter_ip = $_POST['rebooter_ip'];
+		$rebooter_port = $_POST['rebooter_port'];
+		$rebooter_arg = 'Power'.$rebooter_port;	
+		$port_power_arg_upper = strtoupper($rebooter_arg);
+
+		if ($_POST['rebooter_type'] === "megatazik")
+		{
+			$get_data = callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' OFF']);
+			
+			if(!isset($get_data['error']))
+			{
+				$response = json_decode($get_data, true);
+				
+				if (isset($response[$port_power_arg_upper]))
+				{
+					$port_status = $response[$port_power_arg_upper]; 
+					
+					if ($port_status === 'OFF')
+					{
+						callAPI('GET', 'http://'.$rebooter_ip.'/cm', ['cmnd' => $rebooter_arg.' ON']);
+					}
+				}
+			}
+
+		}elseif ($_POST['rebooter_type'] === "APC")
+		{
+			$output=null;
+			$retval=null;
+			exec("./../plugins/rebooter/APC/apc.py --host $rebooter_ip --reboot $rebooter_port", $output, $retval);
+		}
+	}
+}
 
 // Function to make curl requests to API
 function callAPI($method, $url, $data){
