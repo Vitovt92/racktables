@@ -6,7 +6,7 @@ function plugin_rebooter_info ()
 	(
 		'name' => 'rebooter',
 		'longname' => 'pdu-rebooter',
-		'version' => '1.0',
+		'version' => '1.1',
 		'home_url' => 'https://github.com/Vitovt92/racktables'
 	);
 }
